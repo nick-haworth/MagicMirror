@@ -30,6 +30,14 @@ body {
   color: #666;
 }
 
+.dimmed-red {
+  color: #991d1d;
+}
+
+.dimmed-blue {
+  color: #91d1d9;
+}
+
 .normal {
   color: #999;
 }
