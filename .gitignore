@@ -67,6 +67,8 @@ Temporary Items
 /modules/**
 !/modules/default
 !/modules/default/**
+!/modules/MMM-MyCommute
+!/modules/MMM-MyCommute/**
 !/modules/README.md**
 
 # Ignore changes to the custom css files.
