@@ -14,12 +14,12 @@ Module.register("currentweather",{
 		postalCode: "SW4 6BE",
 		apiKey: "204b868b16cd4f389af65a4bfd603f5d",
 		units: config.units,
-		updateInterval: 10 * 60 * 1000, // every 10 minutes
+		updateInterval: 10 * 60 * 3000, // every 30 minutes
 		animationSpeed: 1000,
 		timeFormat: config.timeFormat,
 		showFeelsLike: true,
 		initialLoadDelay: 0, // 0 seconds delay
-		retryDelay: 2500,
+		retryDelay: 10 * 60 * 3000, // every 30 minutes
 		apiVersion: "v2.0",
 		apiBase: "http://api.weatherbit.io",
 		weatherEndpoint: "current",
@@ -127,7 +127,7 @@ Module.register("currentweather",{
 		large.className = "large light";
 
 		var weatherIcon = document.createElement("img");
-		weatherIcon.src = "https://www.weatherbit.io/static/img/icons/" + this.weatherType + ".png"
+		weatherIcon.src = this.apiBase + "/static/img/icons/" + this.weatherType + ".png"
 		weatherIcon.width = "50"
 		weatherIcon.height = "50"
 		large.appendChild(weatherIcon);
