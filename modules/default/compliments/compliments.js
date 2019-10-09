@@ -54,7 +54,7 @@ Module.register("compliments", {
 		this.lastComplimentIndex = -1;
 
 		var self = this;
-		if (this.config.remoteFile != null) {
+		if (this.config.remoteFile !== null) {
 			this.complimentFile(function(response) {
 				self.config.compliments = JSON.parse(response);
 				self.updateDom();
@@ -134,7 +134,7 @@ Module.register("compliments", {
 		xobj.overrideMimeType("application/json");
 		xobj.open("GET", path, true);
 		xobj.onreadystatechange = function() {
-			if (xobj.readyState == 4 && xobj.status == "200") {
+			if (xobj.readyState === 4 && xobj.status === 200) {
 				callback(xobj.responseText);
 			}
 		};
@@ -159,12 +159,11 @@ Module.register("compliments", {
 
 		var compliment = document.createTextNode(complimentText);
 		var wrapper = document.createElement("div");
-		wrapper.className = this.config.classes ? this.config.classes : "thin xlarge bright";
+		wrapper.className = this.config.classes ? this.config.classes : "thin xlarge bright pre-line";
 		wrapper.appendChild(compliment);
 
 		return wrapper;
 	},
-
 
 	// From data currentweather set weather type
 	setCurrentWeatherType: function(data) {
@@ -191,10 +190,9 @@ Module.register("compliments", {
 		this.currentWeatherType = weatherIconTable[data.weather[0].icon];
 	},
 
-
 	// Override notification handler.
 	notificationReceived: function(notification, payload, sender) {
-		if (notification == "CURRENTWEATHER_DATA") {
+		if (notification === "CURRENTWEATHER_DATA") {
 			this.setCurrentWeatherType(payload.data);
 		}
 	},

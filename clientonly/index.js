@@ -2,7 +2,7 @@
 
 "use strict";
 
-// Use seperate scope to prevent global scope pollution
+// Use separate scope to prevent global scope pollution
 (function () {
 	var config = {};
 
@@ -19,7 +19,7 @@
 		// Prefer command line arguments over environment variables
 		["address", "port"].forEach((key) => {
 			config[key] = getCommandLineParameter(key, process.env[key.toUpperCase()]);
-		})
+		});
 	}
 
 	function getServerConfig(url) {
@@ -30,7 +30,7 @@
 			const request = lib.get(url, (response) => {
 				var configData = "";
 
-				// Gather incomming data
+				// Gather incoming data
 				response.on("data", function(chunk) {
 					configData += chunk;
 				});
@@ -43,8 +43,8 @@
 			request.on("error", function(error) {
 				reject(new Error(`Unable to read config from server (${url} (${error.message}`));
 			});
-		})
-	};
+		});
+	}
 
 	function fail(message, code = 1) {
 		if (message !== undefined && typeof message === "string") {
@@ -62,13 +62,13 @@
 	// Only start the client if a non-local server was provided
 	if (["localhost", "127.0.0.1", "::1", "::ffff:127.0.0.1", undefined].indexOf(config.address) === -1) {
 		getServerConfig(`http://${config.address}:${config.port}/config/`)
-			.then(function (config) {
+			.then(function (configReturn) {
 				// Pass along the server config via an environment variable
 				var env = Object.create(process.env);
 				var options = { env: env };
-				config.address = config.address;
-				config.port = config.port;
-				env.config = JSON.stringify(config);
+				configReturn.address = config.address;
+				configReturn.port = config.port;
+				env.config = JSON.stringify(configReturn);
 
 				// Spawn electron application
 				const electron = require("electron");
@@ -89,7 +89,7 @@
 				});
 
 				child.on("close", (code) => {
-					if (code != 0) {
+					if (code !== 0) {
 						console.log(`There something wrong. The clientonly is not running code ${code}`);
 					}
 				});

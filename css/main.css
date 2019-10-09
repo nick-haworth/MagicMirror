@@ -136,6 +136,10 @@ sup {
   text-overflow: ellipsis;
 }
 
+.pre-line {
+  white-space: pre-line;
+}
+
 /**
  * Region Definitions.
  */

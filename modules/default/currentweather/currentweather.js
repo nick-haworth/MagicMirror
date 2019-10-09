@@ -17,6 +17,19 @@ Module.register("currentweather",{
 		updateInterval: 10 * 60 * 3000, // every 30 minutes
 		animationSpeed: 1000,
 		timeFormat: config.timeFormat,
+		showPeriod: true,
+		showPeriodUpper: false,
+		showWindDirection: true,
+		showWindDirectionAsArrow: false,
+		useBeaufort: true,
+		appendLocationNameToHeader: false,
+		useKMPHwind: false,
+		lang: config.language,
+		decimalSymbol: ".",
+		showHumidity: false,
+		degreeLabel: false,
+		showIndoorTemperature: false,
+		showIndoorHumidity: false,
 		showFeelsLike: true,
 		initialLoadDelay: 0, // 0 seconds delay
 		retryDelay: 10 * 60 * 3000, // every 30 minutes
@@ -70,7 +83,7 @@ Module.register("currentweather",{
 	},
 
 	// create a variable to hold the location name based on the API result.
-	fetchedLocatioName: "",
+	fetchedLocationName: "",
 
 	// Define required scripts.
 	getScripts: function() {
@@ -132,19 +145,53 @@ Module.register("currentweather",{
 		weatherIcon.height = "50"
 		large.appendChild(weatherIcon);
 
+		var degreeLabel = "";
+		if (this.config.units === "metric" || this.config.units === "imperial") {
+			degreeLabel += "°";
+		}
+		if(this.config.degreeLabel) {
+			switch(this.config.units) {
+			case "metric":
+				degreeLabel += "C";
+				break;
+			case "imperial":
+				degreeLabel += "F";
+				break;
+			case "default":
+				degreeLabel += "K";
+				break;
+			}
+		}
+
+		if (this.config.decimalSymbol === "") {
+			this.config.decimalSymbol = ".";
+		}
+
 		var temperature = document.createElement("span");
 		temperature.className = "bright";
-		temperature.innerHTML = " " + this.temperature + "&deg;C";
+		temperature.innerHTML = " " + this.temperature.replace(".", this.config.decimalSymbol) + degreeLabel;
 		large.appendChild(temperature);
 
-		var temperatureChange = document.createElement("span");
-		var tempChangeValue = this.roundValue(this.temperature - this.historicalTemperature);
-		if (tempChangeValue > 0) {
-			temperatureChange.className = "dimmed-red";
-		} else if (tempChangeValue < 0) {
-			temperatureChange.className = "dimmed-blue";
-		} else {
-			temperatureChange.className = "dimmed";	
+		if (this.config.showIndoorTemperature && this.indoorTemperature) {
+			var indoorIcon = document.createElement("span");
+			indoorIcon.className = "fa fa-home";
+			large.appendChild(indoorIcon);
+
+			var indoorTemperatureElem = document.createElement("span");
+			indoorTemperatureElem.className = "bright";
+			indoorTemperatureElem.innerHTML = " " + this.indoorTemperature.replace(".", this.config.decimalSymbol) + degreeLabel;
+			large.appendChild(indoorTemperatureElem);
+		}
+
+		if (this.config.showIndoorHumidity && this.indoorHumidity) {
+			var indoorHumidityIcon = document.createElement("span");
+			indoorHumidityIcon.className = "fa fa-tint";
+			large.appendChild(indoorHumidityIcon);
+
+			var indoorHumidityElem = document.createElement("span");
+			indoorHumidityElem.className = "bright";
+			indoorHumidityElem.innerHTML = " " + this.indoorHumidity + "%";
+			large.appendChild(indoorHumidityElem);
 		}
 		temperatureChange.innerHTML = " (" + tempChangeValue + "&deg;C)";
 		large.appendChild(temperatureChange);
@@ -157,7 +204,7 @@ Module.register("currentweather",{
 
 			var feelsLike = document.createElement("span");
 			feelsLike.className = "dimmed";
-			feelsLike.innerHTML = this.translate("FEELS") + " " + this.feelsLike + "&deg;C";
+			feelsLike.innerHTML = this.translate("FEELS") + " " + this.feelsLike + degreeLabel;
 			small.appendChild(feelsLike);
 
 			wrapper.appendChild(small);
@@ -168,8 +215,12 @@ Module.register("currentweather",{
 
 	// Override getHeader method.
 	getHeader: function() {
-		if (this.config.appendLocationNameToHeader) {
-			return this.data.header + " " + this.fetchedLocatioName;
+		if (this.config.appendLocationNameToHeader && this.data.header !== undefined) {
+			return this.data.header + " " + this.fetchedLocationName;
+		}
+
+		if (this.config.useLocationAsHeader && this.config.location !== false) {
+			return this.config.location;
 		}
 
 		return this.data.header;
@@ -255,10 +306,22 @@ Module.register("currentweather",{
 	 */
 	getParams: function() {
 		var params = "?";
-		params += "postal_code=" + this.config.postalCode;
-		params += "&key=" + this.config.apiKey;
-		return params;
-	},
+		if(this.config.locationID) {
+			params += "id=" + this.config.locationID;
+		} else if(this.config.location) {
+			params += "q=" + this.config.location;
+		} else if (this.firstEvent && this.firstEvent.geo) {
+			params += "lat=" + this.firstEvent.geo.lat + "&lon=" + this.firstEvent.geo.lon;
+		} else if (this.firstEvent && this.firstEvent.location) {
+			params += "q=" + this.firstEvent.location;
+		} else {
+			this.hide(this.config.animationSpeed, {lockString:this.identifier});
+			return;
+		}
+
+		params += "&units=" + this.config.units;
+		params += "&lang=" + this.config.lang;
+		params += "&APPID=" + this.config.appid;
 
 	/* getHistoricalParams(compliments)
 	 * Generates an url with api parameters based on the config.
@@ -312,12 +375,73 @@ Module.register("currentweather",{
 		this.updateDom(this.config.animationSpeed);
 	},
 
-	/* processWeather(data)
-	 * Uses the received data to set the various values.
-	 *
-	 * argument data object - Weather information received form openweather.org.
-	 */
-	processHistoricalWeather: function(data) {
+		this.humidity = parseFloat(data.main.humidity);
+		this.temperature = this.roundValue(data.main.temp);
+		this.fetchedLocationName = data.name;
+		this.feelsLike = 0;
+
+		if (this.config.useBeaufort){
+			this.windSpeed = this.ms2Beaufort(this.roundValue(data.wind.speed));
+		} else if (this.config.useKMPHwind) {
+			this.windSpeed = parseFloat((data.wind.speed * 60 * 60) / 1000).toFixed(0);
+		} else {
+			this.windSpeed = parseFloat(data.wind.speed).toFixed(0);
+		}
+
+		// ONLY WORKS IF TEMP IN C //
+		var windInMph = parseFloat(data.wind.speed * 2.23694);
+
+		var tempInF = 0;
+		switch (this.config.units){
+		case "metric": tempInF = 1.8 * this.temperature + 32;
+			break;
+		case "imperial": tempInF = this.temperature;
+			break;
+		case "default":
+			var tc = this.temperature - 273.15;
+			tempInF = 1.8 * tc + 32;
+			break;
+		}
+
+		if (windInMph > 3 && tempInF < 50){
+			// windchill
+			var windChillInF = Math.round(35.74+0.6215*tempInF-35.75*Math.pow(windInMph,0.16)+0.4275*tempInF*Math.pow(windInMph,0.16));
+			var windChillInC = (windChillInF - 32) * (5/9);
+			// this.feelsLike = windChillInC.toFixed(0);
+
+			switch (this.config.units){
+			case "metric": this.feelsLike = windChillInC.toFixed(0);
+				break;
+			case "imperial": this.feelsLike = windChillInF.toFixed(0);
+				break;
+			case "default":
+				var tc = windChillInC + 273.15;
+				this.feelsLike = tc.toFixed(0);
+				break;
+			}
+
+		} else if (tempInF > 80 && this.humidity > 40){
+			// heat index
+			var Hindex = -42.379 + 2.04901523*tempInF + 10.14333127*this.humidity
+				- 0.22475541*tempInF*this.humidity - 6.83783*Math.pow(10,-3)*tempInF*tempInF
+				- 5.481717*Math.pow(10,-2)*this.humidity*this.humidity
+				+ 1.22874*Math.pow(10,-3)*tempInF*tempInF*this.humidity
+				+ 8.5282*Math.pow(10,-4)*tempInF*this.humidity*this.humidity
+				- 1.99*Math.pow(10,-6)*tempInF*tempInF*this.humidity*this.humidity;
+
+			switch (this.config.units){
+			case "metric": this.feelsLike = parseFloat((Hindex - 32) / 1.8).toFixed(0);
+				break;
+			case "imperial": this.feelsLike = Hindex.toFixed(0);
+				break;
+			case "default":
+				var tc = parseFloat((Hindex - 32) / 1.8) + 273.15;
+				this.feelsLike = tc.toFixed(0);
+				break;
+			}
+		} else {
+			this.feelsLike = parseFloat(this.temperature).toFixed(0);
+		}
 
 		if (!data || typeof data.temp === "undefined") {
 			// Did not receive usable new data.

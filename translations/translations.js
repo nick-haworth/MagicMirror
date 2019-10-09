@@ -37,9 +37,12 @@ var translations = {
 	"ro" : "translations/ro.json", // Romanian
 	"cy" : "translations/cy.json", // Welsh (Cymraeg)
 	"bg" : "translations/bg.json",  // Bulgarian
-	"cs" : "translations/cs.json"  // Czech
+	"cs" : "translations/cs.json",  // Czech
+	"hr" : "translations/hr.json", // Croatian
+	"sk" : "translations/sk.json",  // Slovak
+	"tlh" : "translations/tlh.json", // Klingon
+	"ms-my" : "translations/ms-my.json" // Malay
 };
 
 if (typeof module !== "undefined") {module.exports = translations;}
-
 
